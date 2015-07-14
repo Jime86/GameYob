@@ -11,6 +11,12 @@
 
 #include <ctrcommon/gpu.hpp>
 
+#define GFX_NOSCALE     0
+#define GFX_SCALE125    1
+#define GFX_SCALE150    2
+#define GFX_SCALEASPECT 3
+#define GFX_SCALEFULL   4
+
 static u32* screenBuffer;
 
 static int prevScaleMode = -1;
@@ -318,10 +324,16 @@ void gfxDrawScreen() {
         // Calculate the VBO dimensions.
         u32 vboWidth = 160;
         u32 vboHeight = 144;
-        if(scaleMode == 1) {
+        if (scaleMode == GFX_SCALE125) {
+            vboWidth  = vboWidth+(vboWidth>>2);
+            vboHeight = vboHeight+(vboHeight>>2);
+        } else if (scaleMode == GFX_SCALE150) {
+            vboWidth  = vboWidth+(vboWidth>>1);
+            vboHeight = vboHeight+(vboHeight>>1);
+        } else if(scaleMode == GFX_SCALEASPECT) {
             vboWidth *= gpuGetViewportHeight() / (float) 144;
             vboHeight = (u32) gpuGetViewportHeight();
-        } else if(scaleMode == 2) {
+        } else if(scaleMode == GFX_SCALEFULL) {
             vboWidth = (u32) gpuGetViewportWidth();
             vboHeight = (u32) gpuGetViewportHeight();
         }
@@ -364,7 +376,7 @@ void gfxDrawScreen() {
 
     // Update the texture with the new frame.
     TextureFilter filter = scaleFilter >= 1 ? FILTER_LINEAR : FILTER_NEAREST;
-    if(scaleMode == 0 || scaleFilter <= 1) {
+    if(scaleMode == GFX_NOSCALE || scaleFilter <= 1) {
         gpuTextureData(texture, screenBuffer, 256, 256, PIXEL_RGBA8, TEXTURE_MIN_FILTER(filter) | TEXTURE_MAG_FILTER(filter));
     } else {
         gpuTextureInfo(texture, 512, 512, PIXEL_RGBA8, TEXTURE_MIN_FILTER(filter) | TEXTURE_MAG_FILTER(filter));
@@ -375,7 +387,7 @@ void gfxDrawScreen() {
     gpuClear();
 
     // Draw the border.
-    if(borderTexture != 0 && borderVbo != 0 && scaleMode != 2) {
+    if(borderTexture != 0 && borderVbo != 0 && scaleMode != GFX_SCALEFULL) {
         gpuBindTexture(TEXUNIT0, borderTexture);
         gpuDrawVbo(borderVbo);
     }
